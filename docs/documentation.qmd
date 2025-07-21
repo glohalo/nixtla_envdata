@@ -1,0 +1,222 @@
+---
+title: "Forecasting kNDVI using TimeGPT"
+author: "Gloria Carrascal"
+date: today
+bibliography: references.bib
+
+format:
+    html:
+        polyfill: false
+        embed-resources: true
+        toc: true        
+        toc-location: left
+        toc-title: "Contents"
+        toc-depth: 3
+        number-sections: true
+        css: style.css
+        page-layout: article 
+---
+
+# Introduction 
+
+The study of vegetation dynamics is key to assessing ecosystem health and resilience. This report presents 
+a forecasting analysis of the Kernel Normalized Difference Vegetation Index (kNDVI) using two models: a baseline 
+Ridge Regression and TimeGPT, originally developed for financial forecasting but adapted here for environmental 
+data. The analysis includes exploratory data exploration, forecasting, and performance evaluation using MAE, MSE, 
+and RMSE. Understanding vegetation dynamics helps reveal the effects of climate change, human activity, and natural 
+disturbances, supporting conservation and sustainable management.
+
+# Data and Methods
+
+This section describes the dataset used in the study, the preprocessing steps applied, and the forecasting methods implemented. It begins by introducing the kNDVI dataset and its structure, followed by a 
+description of the forecasting models employed to generate predictions and evaluate their performance.
+
+
+## Dataset Description
+
+The dataset comprises Earth Observations as time series. It consist of 214,351 time series for the trainning dataset. The files used during the challenge were splited into train and validation subsets as shown in @tbl-summarydataset.
+
+| Dataset| Unique Ids   | Timesteps|  NaNs|
+|------|------|------|------|
+| Train   | 214,751    | 1004   | 0|
+| Validation  | 71,755   | 1004   | 0 |
+
+: Datasets available to develop the project, summary of the basics shapes and NaN counts. {#tbl-summarydataset}
+
+The data contains numpy arrays with dimensions ```[batch, time, variables]```.
+The variables are given in the next order: ```[air temperature, evaporation, 
+precipitation, radiation, kNDVI]```. These values correspond to an index from 0 to 4. 
+In this project is used the index 4. Regarding the time, the historical data corresponds
+to the period from 2000-03-01 to 2021-12-27 with a timestep of 8 days ^[[kNDVI Prediction Challenge, documentation](https://git.sc.uni-leipzig.de/ss2025std/kndvi-prediction-challenge)] .
+
+## Models 
+
+In order to create the forecast of the kNDVI in a time horizont of 92 days. The transformer **TimeGPT** 
+it is used as the principal tool. However, in the project the prediction process is created as well with a baseline simple model, the **Ridge Regression**
+to compare if **TimeGPT** acts as a game changer *multiforecasting* environmental data. Various evaluation metrics are used, including Mean Squared Error (MSE), 
+Root Mean Squared Error (RMSE), and Mean Average Error (MAE). Each metric offers a distinct viewpoint on the model’s performance 
+and plays a crucial role in determining its effectiveness in predicting the kNDVI. 
+
+### Ridge Regression 
+
+This method consists of estimating the coefficients of multiple-regression models. It works especially 
+under scenarios where independent variables have a high correlation. The model minimizes the objective function in @eq-regressor ,
+but with a twist: it includes **L2 regularization**. This means it not only tries to reduce the error
+between the predicted and actual values, but it also adds a penalty if the model's coefficients become too large. Also known 
+as Ridge Regression or Tikhonow regularization [@ridgewikipedia;@ridgesklearn].
+
+$$ 
+ ||y -Xw||^2_2 + alpha *||w||^2_2
+$$ {#eq-regressor}
+
+In the context of the kNDVI challenge, the ridge regressor model is applied with an univariate time series forecasting approach. Only the target variable, the 
+kNDVI and its time column. However, the ridge regressor doesn't natively understand time or seasonality [@ridgewikipedia], it was created with a single month lag as an exogenous
+variable to predict the next 92 timesteps. 
+
+### Nixtla TimeGPT
+
+**TimeGPT** is a production-ready generative pre-trained transformer model specifically designed for time series forecasting. The @fig-timegpt describes the fine-tuning process architecture from TimeGPT
+to create the forecast [@timegptp_architecture]. In this project, the few-shot learning framework is used. Few-shot learning consists of training an AI model on a very small number of samples [@ibm-fewlearning]. In this case, with TimeGPT, a fine-tuning process is employed to adapt the model to the specific forecast task. Additionally, 
+exogenous variables were given to generate the 92 predictions, ```['month', 'quarter', 'year', 'dayofyear']```.
+
+ ![Architecture of the model and fine tuning process involved in TimeGPT to forecast a time series [@timegptp_architecture].](figures/timegpt_diagram.jpg){#fig-timegpt}
+
+The fine-tuning process is carried out using the full historical load data (see @fig-timegpt). This data is used to update the weights of all layers in the model.
+The model processes all past values using *self-attention* and builds a latent representation of the full historical context, including trends and seasonal behavior. 
+As the horizon of predictions was long with few years of context the generalizations were poor, the time series variavility was trackless.
+
+
+# Results and Discussion
+
+This section will conduct predictions analysis throughly explore the performance of the Ridge Regressor and TimeGPT with kNDVI predictions.
+
+## Model Performance
+
+To evaluate the model performance of the Ridge Regressor and TimeGPT forecast, the validation dataset was used. The prediction period corresponds 
+from 2020-02-21 to 2022-02-10, a total of 92 time steps with a frequency of 8 days.
+The average evaluation metrics of Ridge Regressor and TimeGPT are shown in 
+@tbl-forecastmetrics.
+
+
+| Model | MAE   | RMSE | MSE |
+|------|------|------|------|
+| Ridge Regressor    | 0.1031    | 0.1048   | 0.1031|
+| TimeGPT not fine-tuning  | 0.0430   | 0.0974    | 0.0095 |
+| TimeGPT with fine-tuning  | 0.0233   | 0.1665    | 0.0277 |
+
+
+: Forecast metrics for Ridge Regressor and TimeGPT models during the prediction of 220,000 time series {#tbl-forecastmetrics}
+
+As expected, the Ridge Regressor, which uses a simple linear model with only one lag, provides a basic benchmarck with moderate error metrics.
+However, the initial performance of TimeGPT without fine-tuning is already superior, indicating its potential to capture patterns. 
+The complexity and nature of TimeGPT, with the context of the full historical is poor prior to fine-tuning. Besides of this, just after the f
+over 5 transformer layes, and minimizing the mean squared error loss, the performance of TimeGPT improves significantly, with considerable decreases observed in the metrics.
+The reason for this is that the fine-tuning enables the model to specialize without overfitting, involves specific adjustments to its weights tailored to read requirements of load forecasting, 
+which allows to adapt better to the data distribution, patterns, and charascteristics associated with load forecasting [@timegptp_architecture]. Consequently, TimeGPT with fine-tuning achieves the lowest MAE, making it a 
+highly effective model for real-world vegetation forecasting tasks.
+
+## Forecast Shape Analysis
+
+Beyond numerical error metrics, evaluating the shape and structure of forecasted time series is essential to understanding how well models
+capture the dynamics and patterns of the target variable. Visual comparisons between the predicted and observed time series allow us to assess wheter models 
+replicate the qualitative behavior of the signal, not just its average magnitude. Starting with Ridge Regression, @fig-ridgeressorreal
+presents kNDVI forecasts for four selected spatial points (pixels). This figure illustrates the illusion of seemingly “good” average metrics: 
+although error values may appear low, the predicted dynamics often diverge significantly from the true temporal behavior, 
+shws forecasts that are structurally detached from the actual signal.
+
+
+::: {#fig-ridgeressorreal layout-nrow=2}
+![Pixel 381.](figures/pixel_381.png)
+
+![Pixel 408.](figures/pixel_409.png)
+
+![Pixel 560.](figures/pixel_560.png)
+
+![Pixel 645.](figures/pixel_645.png)
+
+Ridge Regression predictions and real values for kNDVI 
+:::
+
+In contrast, the comparison bwteen the two versions of TimeGPT forecasts as shown in @fig-timegptnofinetuning, and @fig-timegptfinetuning, 
+highlights differences in the model's ability to generalize. Despite the similarity in average errors (see @tbl-forecastmetrics) the behavior
+of the forecast points up important differences. In the first case, without fine tuning, the predictions tend to forecast toward 
+the mean value of the serie. As seen in @fig-timegptnofinetuning, forecast often start from the series average, and approximate
+the overall trend, but fail to capture local deviations and outliers producing a smoothed version of the time series.
+The case two where fine-tunning is applied, shows improvement in how the model maps the serie. As presented in @fig-timegptfinetuning, 
+the forecasts start closer to the real observed values and track the dynamics of the time series with greater accuracy.
+This includes a better reproduction of sharp changes, amplitude variation, and localized fluctuations. This behavior reflects model's 
+ability in the case two  to adapt its internal structure to the specific charascteristics of the kNDVI data after fine-tuning.
+
+
+::: {#fig-timegptnofinetuning layout-nrow=2}
+![Unique ID 30928.](figures/30928_nofinetuning.png)
+
+![Unique ID 17193.](figures/17193_nofinetuning.png)
+
+![Unique ID 36676.](figures/36676_nofinetuning.png)
+
+![Unique ID 105133.](figures/105133_nofinetuning.png)
+
+TimeGPT predictions, no fine-tuning applied, and real values for kNDVI 
+:::
+
+What we can take from this excerscie is that, even though TimeGPT is a pre-trainned model designed for timeseries, particularly in the
+finance domain [@timegpt]; predicting kNDVI indices posed a nontrivial challenge, yet not impossible one.
+Due to the scale of the dataset, with approximatly 220,00 unique time series, forecasting had to be performed in batches of 20,000 unique
+IDs per session. This led to a total of eleven separate forecasting calls to the API. However, the Ridge Regressor can handle the full
+dataset in a single execution, with far less computational overhead and no need for batching. But, the trade-off is clear: TimeGPT, 
+though more complex and resource-intensive, offers significantly better results in capturing the dynamics and variavility of the kNDVI, 
+specially after fine-tuning.
+
+::: {#fig-timegptfinetuning layout-nrow=2}
+![Unique ID 148220.](figures/148220.png)
+
+![Unique ID 165133.](figures/165133.png)
+
+![Unique ID 85679.](figures/85679.png)
+
+![Unique ID 91427.](figures/91427.png)
+
+TimeGPT predictionos after applying fine-tuning, and real values for kNDVI 
+:::
+
+## Technical Challenges
+
+To predict the kNDVI signals, several preprocessing and computationals tricks had to be addressed. The first critial step during before the 
+forecast was the transformation of the input data into TimeGPT's required format. This data structure may be flexible 
+for general time series tasks, but lacks of native
+support for geospatial structures such datacubes. In this project, each cube had to be uniquely identified 
+by joining latitude and longitude coordinates into a string-based unique ID, and grouped into batches for each forecast. 
+The second step during execution, was to send the API the data. The API displays a progressive computation pattern 
+(e.g., from 0% to 100% across batches), reflecting the non-trivial effort required to handle long sequences. 
+Internally, the model issues a warning when the forecast horizon exceeds its pretrained limits:
+
+```
+WARNING - The specified horizon "h" exceeds the model horizon, this may lead to less accurate forecasts. 
+Please consider using a smaller horizon.
+```
+This suggests that forecasting long sequences may stretch the model beyond its optimal capacity, which should be taken 
+into account in production scenarios. Additionally, the model uses inferred frequencies and requires exogenous variables 
+such as month, quarter, year, and dayofyear, but does not provide feature importance, limiting interpretability. 
+Being able to assess which features matter most would allow users to reduce complexity by selecting only relevant 
+exogenous inputs.
+
+# Conclusions 
+
+This study demostrates that TimeGPT can effectively forecast kNDVI signal when provided with the full historical context 
+of the series. Despite being primarly designed for financial data, the model showed strong adaptability to environmental 
+variables and was able to perform well over a long horizon of 92 time steps.
+
+From an implementation standpoint, this work also highlights the need for more geospatial aware tooling. 
+The transformation of spatio temporal data into TimeGPT's format by flattening (lat, lon) into unique string identifiers is a workaround 
+that does not scale well. A model or API that natively supports spatial indexing and spatial context such , H3, S2, or lat/lon pairs
+would greatly benefit Earth observation and remote sensing applications. Moreover, the results indicate that TimeGPT 
+has a high potential for gap filling and interpolation in satellite-derived time series, where missing data are common due to cloud cover, sensor limitations
+or preprocessing errors. Once the full temporal context is provided, the model is able to generalize the shape and dynamics of the signal, as clearly shown 
+in @fig-timegptfinetuning.
+
+# Acknowledgement
+
+This project was developed as part of the Time Series course in the Earth System Data Science and Remote Sensing Master’s program, 
+within the context of the kNDVI Prediction Challenge. 
+We gratefully acknowledge the support of Nixtla, who provided access to the TimeGPT API for experimentation and scientific exploration.

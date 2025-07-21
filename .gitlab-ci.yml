@@ -1,0 +1,11 @@
+pages:
+  stage: deploy
+  script:
+    - mkdir -p public
+    - cp docs/documentation.html public/
+    - cp portfolio_exercises/PORTFOLIO.html public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - feature/documentation

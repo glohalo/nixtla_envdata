@@ -1,0 +1,12 @@
+numpy == 2.3.1
+pandas == 2.3.1
+python-dotenv == 1.1.1
+pillow == 11.3.0
+scikit-learn == 1.7.0
+scipy == 1.16.0
+matplotlib == 3.10.3
+dask[dataframe] == 2025.5.1
+nixtla == 0.6.6
+psutil == 7.0.0
+toml == 0.10.2
+tomlkit == 0.13.3

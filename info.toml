@@ -1,0 +1,20 @@
+title = "Production-Ready Generative Pretrained Transformer Model Submission"
+alias = "Nixtla_TimeGPT"
+
+[personal]
+name = "Gloria Carrascal"
+id = "3792492"
+email = "da22digu@studserv.uni-leipzig.de"
+
+[estimates]
+train_error = "Don't apply"
+validation_error = "Don't apply"
+
+[errors]
+train_error = "0.02323118088538281"
+validation_error = "0.02323118088538281"
+
+[assignment]
+documentation = "/home/sc.uni-leipzig.de/da22digu/kndvi-prediction-challenge-baseline-submission-25/docs/report.pdf"
+solution = "/home/sc.uni-leipzig.de/da22digu/kndvi-prediction-challenge-baseline-submission-25/results/solution.npz"
+solution_backup = "/home/sc.uni-leipzig.de/da22digu/kndvi-prediction-challenge-baseline-submission-25/results/solution_backup.npz"

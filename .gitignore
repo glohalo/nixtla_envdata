@@ -1,0 +1,19 @@
+/.projectile-cache.eld
+*.out
+kndvi_venv
+*.parquet
+*.ipynb_checkpoints
+*.pytest_cache
+*.err
+*.out
+forecast_batches_legacy
+no_tuning
+*__pycache__
+*.synctex.gz
+*.log
+*.aux
+.auctex-auto
+# for qmd files
+*_files
+*.png
+*.jpg
