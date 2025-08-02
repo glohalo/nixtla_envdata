@@ -280,7 +280,7 @@ limits transparency and interpretability. While the current TimeGPT framework is
 generalization capabilities, enabling forecasts for previously unseen locations based on learned spatial relationships. This would open new possibilities for applying transformer-based models 
 to spatio temporal problems in Earth observation. Finally, TimeGPT shows promising potential for **gap-filling and temporal interpolation** in satellite-derived time series, where missing observations 
 due to cloud cover, sensor issues, or preprocessing errors are common. Once provided with full historical context, the model successfully generalizes the temporal dynamics, making it a valuable 
-tool for Earth observation and remote sensing tasks, provided sufficient computational resources and contextual information are available.
+tool for Earth observation and remote sensing tasks, provided sufficient computational resources and contextual information available.
 
 # Acknowledgement
 
